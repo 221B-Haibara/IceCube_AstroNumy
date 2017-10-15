@@ -198,7 +198,8 @@ class gaussian_kde(object):
 
         return result
 
-    __call__ = evaluate
+    def __call__(self, points):
+        self.evaluate(points)
 
     def scotts_factor(self):
         return np.power(self.neff, -1. / (self.d + 4))
