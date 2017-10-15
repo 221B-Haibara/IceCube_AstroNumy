@@ -11,7 +11,7 @@ class NuDist:
         m = np.histogram(pass_sr["cos(ImpLF_zen)"], weights=np.array(pass_sr["wE3"]) / 0.457845099495, bins=bins,
                          normed=True)
 
-        self.density_nocos = gaussian_kde(np.array(pass_sr["cos(ImpLF_zen)"]), weights=np.array(pass_sr["wE3"]))
+        self.density_nocos = gaussian_kde(np.rad2deg(np.arccos(np.array(pass_sr["cos(ImpLF_zen)"]))), weights=np.array(pass_sr["wE3"]))
         self.density_nocos.set_bandwidth(0.04)
         self.x_nocos = m[1]
 
@@ -20,7 +20,7 @@ class NuDist:
                          weights=np.array(pass_sr["wE3"]) / 0.457845099495,
                          bins=bins, normed=True)
 
-        self.density = gaussian_kde(np.rad2deg(np.arccos(np.array(pass_sr["cos(ImpLF_zen)"]))),
+        self.density = gaussian_kde(np.array(pass_sr["cos(ImpLF_zen)"]),
                                     weights=np.array(pass_sr["wE3"]))
         self.density.set_bandwidth(0.05)
         self.x = m[1]
@@ -38,17 +38,23 @@ class NuDist:
         """
         Draw random neutrino
         :param size: how many neutrinos
-        :return: [(declination, right_ascension), (...),  ...]
+        :return: [(right_ascension, declination), (...),  ...]
         """
-        theta = self.zenith2declination(self.density.resample(size=size)[0])
-        phi = np.random.uniform(0, 2 * np.pi, size=size)
-        data = np.array([theta, phi])
+        theta = self.density.resample(size=int(size*1.1))[0] #this is a bit hacky because smooth dist has inifinite tails
+        theta = (theta[(theta>=-1) & (theta<=1)])[:size]
+        if len(theta) != size:
+            raise RuntimeError("Please rerun, random number generation failed (can happen due to tails of smoothed dist)")
+
+        dec = self.zenith2declination(theta)
+        ra = np.random.uniform(0, 360, size=size)
+        data = np.array([ra, dec])
         return data.T
 
     @staticmethod
     def zenith2declination(theta):
-        return theta - 90.
+        return np.rad2deg(np.arccos(theta)) - 90.
 
 
 if __name__ == "__main__":
     nudist = NuDist()
+    print nudist.get_random(10000)
